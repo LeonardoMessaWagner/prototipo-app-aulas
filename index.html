@@ -217,6 +217,7 @@ var TABS={
 };
 function nav(id){ current=id; render(); var c=document.querySelector('#device .content'); if(c) c.scrollTop=0; }
 function quick(role){
+  filterState={content:'Tudo', sub:'Pendentes', student:'Todos'};
   if(role==='login'){ nav('login'); } else { nav({aluno:'alu-inicio',teacher:'tea-inicio',admin:'adm-inicio'}[role]); }
   markSwitch(role);
 }
@@ -242,7 +243,8 @@ function matchContent(c){ var f=filterState.content; if(f==='Tudo')return true; 
 /* ---------- Estado de UI ---------- */
 var filterState={content:'Tudo', sub:'Pendentes', student:'Todos'};
 var selectedDay=9, pickedFormat=null, correctingId=null, ratingStars=4, newFormats=['foto','audio'];
-var signupRole='admin', contentIdx=0, studentSel=null, teacherIdx=0, detailBack='adm-alunos';
+var signupRole='admin', contentIdx=0, studentSel=null, teacherIdx=0, detailBack='adm-alunos', formReturn='tea-inicio';
+function openForm(s){ formReturn=current; nav(s); }
 function setFilter(g,v){ filterState[g]=v; render(); }
 function selectDay(d){ selectedDay=d; render(); }
 function pickFmt(f){ pickedFormat=f; render(); }
@@ -468,7 +470,7 @@ var SCREENS={
       +'<div class="lbl">Nível</div><select id="nc-level" class="finp"><option>A1</option><option>A2</option></select>'
       +'<div class="lbl">Indicado para</div><input id="nc-assign" class="finp" value="Turma A1">'
       +'<button class="cta" onclick="addContent()">Adicionar à biblioteca ✓</button>';
-    return '<div class="screen">'+topBack(detailBack,'Novo conteúdo')+'<div class="content">'+body+'</div></div>';
+    return '<div class="screen">'+topBack(formReturn,'Novo conteúdo')+'<div class="content">'+body+'</div></div>';
   },
   'nova-aula':function(){
     var opts=store.students.map(function(s){return '<option>'+esc(s.name)+'</option>';}).join('');
@@ -478,7 +480,7 @@ var SCREENS={
       +'<div class="lbl">Horário</div><input id="ac-time" class="finp" value="14:00">'
       +'<div class="lbl">Endereço</div><input id="ac-where" class="finp" placeholder="Rua, número">'
       +'<button class="cta" onclick="addClass()">Agendar aula ✓</button>';
-    return '<div class="screen">'+topBack(detailBack,'Nova aula')+'<div class="content">'+body+'</div></div>';
+    return '<div class="screen">'+topBack(formReturn,'Nova aula')+'<div class="content">'+body+'</div></div>';
   }
 };
 
@@ -488,7 +490,7 @@ function contentLibrary(role){
   var body=filterChips('content',['Tudo','🎬 Filmes','📺 Séries','🎵 Músicas'])
     +(list.length?list.map(function(c){var i=store.contents.indexOf(c);return '<div class="ccard" onclick="openContent('+i+')"><div class="cposter" style="background:'+c.color+'">'+c.emoji+'</div><div><div class="ctitle">'+esc(c.title)+'</div><div class="cmeta"><span class="lvl">'+c.level+'</span> · '+c.type+'</div><div class="cassign">Indicado: '+esc(c.assign)+'</div></div></div>';}).join(''):'<div class="empty">Nada nesse filtro.</div>');
   var active=role==='admin'?'adm-conteudos':'tea-conteudos';
-  return wrap(role, topUser('Biblioteca','Conteúdos','＋','var(--primary)',"nav('novo-conteudo')"), body, active);
+  return wrap(role, topUser('Biblioteca','Conteúdos','＋','var(--primary)',"openForm('novo-conteudo')"), body, active);
 }
 function agendaScreen(role){
   var days=[['SEG',7],['TER',8],['QUA',9],['QUI',10],['SEX',11]];
@@ -497,7 +499,7 @@ function agendaScreen(role){
   var body=ds+(list.length?list.map(function(c){var who=role==='admin'?('<span class="abadge">'+esc(c.teacher==='Você'?'Você':c.teacher.replace('Teacher ',''))+'</span>'):('<span class="abadge">'+esc(c.mode)+'</span>');return '<div class="appt '+c.c+'" onclick="toast(\'Aula com '+esc(c.student)+' — '+esc(c.mode)+'\')">'+who+'<div class="atime">'+c.time+' · '+esc(c.student)+'</div><div class="awhere">📍 '+esc(c.where)+'</div></div>';}).join(''):'<div class="empty">Sem aulas nesse dia. Toque em ＋ para agendar.</div>')
     +'<div class="remind">🔔 Lembrete automático é enviado aos pais 1 dia antes de cada aula.</div>';
   var active=role==='admin'?'adm-agenda':'tea-agenda';
-  var top=role==='admin'?topUser('Escola · julho','Agenda geral','👑','#1A1A2E'):topUser('Julho','Agenda','＋','var(--primary)',"nav('nova-aula')");
+  var top=role==='admin'?topUser('Escola · julho','Agenda geral','👑','#1A1A2E'):topUser('Julho','Agenda','＋','var(--primary)',"openForm('nova-aula')");
   return wrap(role, top, body, active);
 }
 
@@ -543,11 +545,11 @@ function addContent(){
   var type=(document.getElementById('nc-type')||{}).value, level=(document.getElementById('nc-level')||{}).value, assign=(document.getElementById('nc-assign')||{}).value||'Sugestão geral';
   var emoji={'🎬 Filme':'🎬','📺 Série':'📺','🎵 Música':'🎵'}[type]||'🎬';
   var colors=['#FF7A45','#00C2A8','#4A3AFF','#FF5C7A','#FFC93C'];
-  store.contents.push({title:title,emoji:emoji,color:colors[store.contents.length%colors.length],level:level,type:type,assign:assign}); save(); toast('"'+title+'" adicionado ✓'); nav(detailBack);
+  store.contents.push({title:title,emoji:emoji,color:colors[store.contents.length%colors.length],level:level,type:type,assign:assign}); save(); toast('"'+title+'" adicionado ✓'); nav(formReturn);
 }
 function addClass(){
   var student=(document.getElementById('ac-student')||{}).value, day=parseInt((document.getElementById('ac-day')||{}).value,10)||selectedDay, time=(document.getElementById('ac-time')||{}).value||'14:00', where=(document.getElementById('ac-where')||{}).value||'A definir';
-  store.classes.push({day:day,teacher:'Você',time:'🕐 '+time,student:student,where:where,mode:'Domicílio',c:'teal'}); save(); selectedDay=day; toast('Aula com '+student+' agendada ✓'); nav(detailBack);
+  store.classes.push({day:day,teacher:'Você',time:'🕐 '+time,student:student,where:where,mode:'Domicílio',c:'teal'}); save(); selectedDay=day; toast('Aula com '+student+' agendada ✓'); nav(formReturn);
 }
 
 /* ---------- Render ---------- */
